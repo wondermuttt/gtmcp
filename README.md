@@ -1,8 +1,15 @@
 # Georgia Tech Comprehensive MCP Server
 
-An advanced MCP (Model Context Protocol) server that provides LLMs with comprehensive access to Georgia Tech's academic and research ecosystem, integrating multiple GT systems for intelligent workflows. **Now with OSCAR 500 error fixes for reliable course searching.**
+An advanced MCP (Model Context Protocol) server that provides LLMs with comprehensive access to Georgia Tech's academic and research ecosystem, integrating multiple GT systems for intelligent workflows. **Now with OSCAR 500 error fixes for reliable course searching and ChatGPT HTTP integration.**
 
 ## Features
+
+### ChatGPT Integration ✨ **NEW: HTTP API Server**
+- **FastAPI HTTP Server**: Complete HTTP API for ChatGPT Custom Tools integration
+- **CORS Enabled**: Cross-origin requests from ChatGPT domains supported
+- **JSON Responses**: All endpoints return proper JSON for ChatGPT consumption
+- **Auto Documentation**: Interactive OpenAPI/Swagger docs at `/docs` endpoint
+- **Health Monitoring**: Real-time service health checks and monitoring
 
 ### Core Course Scheduling (OSCAR System) ✨ **500 Error Fixes Applied**
 - **Available Semesters**: Get list of available semesters for course searches
@@ -41,6 +48,9 @@ An advanced MCP (Model Context Protocol) server that provides LLMs with comprehe
 
 2. **Start the server:**
    ```bash
+   # For ChatGPT integration (HTTP API server):
+   ./start_server_chatgpt.sh
+   
    # For EXPANDED functionality (all GT systems):
    ./start_server_expanded.sh
    
@@ -76,14 +86,55 @@ An advanced MCP (Model Context Protocol) server that provides LLMs with comprehe
    python -m pytest tests/ -v
    ```
 
-5. **Run the MCP server:**
+5. **Run the server:**
    ```bash
+   # ChatGPT HTTP API server:
+   python -m gtmcp.server_fastapi --host localhost --port 8000
+   
    # Expanded server (recommended):
    python -m gtmcp.server_expanded
    
    # Original course scheduling only:
    python -m gtmcp.server
    ```
+
+## ChatGPT Integration Setup
+
+### Quick Start
+1. **Start the HTTP server:**
+   ```bash
+   ./start_server_chatgpt.sh
+   ```
+   Server will run on `http://localhost:8000` by default.
+
+2. **Configure ChatGPT:**
+   - Open ChatGPT settings
+   - Go to Beta Features  
+   - Enable "Custom GPTs & Tools"
+   - Create new custom tool:
+     - **Name**: Georgia Tech MCP Server
+     - **Description**: Access GT course schedules and research
+     - **URL**: `http://localhost:8000`
+
+### Available HTTP Endpoints
+```
+GET  /                           # Server information and capabilities
+GET  /health                     # System health status
+GET  /tools                      # Available MCP tools
+GET  /api/semesters             # Available academic semesters
+GET  /api/subjects/{term_code}   # Subjects for specific semester
+GET  /api/courses               # Course search (query params: term_code, subject)
+GET  /api/courses/{term}/{crn}  # Detailed course information
+GET  /api/research              # Research paper search (query params: keywords, max_records)
+GET  /docs                      # Interactive API documentation
+GET  /openapi.json              # OpenAPI specification
+```
+
+### Example ChatGPT Queries
+- "What CS courses are available for Spring 2025?"
+- "Find research papers about machine learning"
+- "Get details for course CRN 12345 in Spring 2025"
+- "What subjects are available for Fall 2024?"
 
 ## MCP Tools (17 Comprehensive Tools)
 
@@ -286,6 +337,27 @@ The scraper includes configurable delays and retry logic to be respectful to the
 
 The project includes comprehensive testing for all integrated systems:
 
+### Comprehensive Test Suite (122+ Tests)
+- **36 HTTP Server Tests**: FastAPI endpoint testing and ChatGPT integration validation
+- **17 External Server Tests**: Real HTTP server integration testing with subprocess management
+- **69+ MCP Unit Tests**: Original MCP functionality validation and client testing
+
+### HTTP Server & ChatGPT Integration Tests
+```bash
+# Run all HTTP integration tests (36 tests)
+python -m pytest tests/test_fastapi_server.py tests/test_external_server.py -v
+
+# Run FastAPI server tests (19 tests)
+python -m pytest tests/test_fastapi_server.py -v
+
+# Run external server tests (17 tests)  
+python -m pytest tests/test_external_server.py -v
+
+# Run specific test categories
+python -m pytest tests/test_fastapi_server.py::TestFastAPIServerBasic -v
+python -m pytest tests/test_external_server.py::TestExternalServerChatGPTCompatibility -v
+```
+
 ### Unit Tests
 - **Model Tests**: Data validation and serialization
 - **Configuration Tests**: Config loading and validation  
@@ -314,6 +386,21 @@ python test_server.py
 # Test expanded multi-system functionality:
 python test_expanded_server.py
 ```
+
+### Test Categories
+
+#### FastAPI Server Tests (19 tests)
+- ✅ **Basic Functionality**: Root, health, and tools endpoints
+- ✅ **OSCAR Integration**: Semesters, subjects, courses, and details with mocked data
+- ✅ **Research Integration**: Paper search and research endpoints
+- ✅ **ChatGPT Compatibility**: CORS, JSON responses, error handling
+- ✅ **Performance**: Concurrent requests, large responses, error recovery
+
+#### External Server Tests (17 tests)  
+- ✅ **Real HTTP Server**: Subprocess startup and external HTTP testing
+- ✅ **ChatGPT Integration**: Cross-origin requests and response validation
+- ✅ **Server Reliability**: Load testing, memory stability, error recovery
+- ✅ **API Documentation**: OpenAPI spec and interactive docs validation
 
 ### System Health Checks
 ```bash
