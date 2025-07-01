@@ -139,6 +139,40 @@ async def search_research(keywords: str, max_records: int = 10):
             }
     return {"keywords": keywords.split(','), "max_records": max_records, "count": 0, "papers": []}
 
+@test_app.get("/.well-known/ai-plugin.json")
+async def ai_plugin_manifest():
+    """ChatGPT AI Plugin manifest for discovery."""
+    return {
+        "schema_version": "v1",
+        "name_for_human": "GT MCP Server",
+        "name_for_model": "gt_mcp",
+        "description_for_human": "Access Georgia Tech course schedules, research papers, and campus information.",
+        "description_for_model": "Plugin for accessing Georgia Tech courses, semesters, subjects, course details, and research papers.",
+        "auth": {"type": "none"},
+        "api": {
+            "type": "openapi",
+            "url": "http://localhost:8080/openapi.json",
+            "is_user_authenticated": False
+        },
+        "logo_url": "http://localhost:8080/static/logo.png",
+        "contact_email": "support@gtmcp.example.com",
+        "legal_info_url": "http://localhost:8080/legal"
+    }
+
+@test_app.get("/legal")
+async def legal_info():
+    """Legal information endpoint."""
+    return {
+        "service_name": "Georgia Tech MCP Server",
+        "version": "2.1.0",
+        "terms_of_service": "This service provides access to publicly available Georgia Tech course and research information.",
+        "privacy_policy": "This service does not collect or store personal information.",
+        "disclaimer": "This is an unofficial service not affiliated with Georgia Tech.",
+        "data_sources": ["Georgia Tech OSCAR course system", "Georgia Tech SMARTech research repository"],
+        "contact": "For questions about this service, please refer to the source code repository.",
+        "last_updated": "2024-01-01"
+    }
+
 
 class TestFastAPIServerBasic:
     """Test basic server functionality and endpoints."""
@@ -552,6 +586,38 @@ class TestFastAPIServerIntegration:
         assert "info" in openapi_data
         assert "paths" in openapi_data
         assert openapi_data["info"]["title"] == "Georgia Tech MCP Server"
+    
+    def test_chatgpt_ai_plugin_manifest(self, client):
+        """Test ChatGPT AI plugin manifest endpoint."""
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        assert "application/json" in response.headers["content-type"]
+        
+        data = response.json()
+        assert data["schema_version"] == "v1"
+        assert data["name_for_human"] == "GT MCP Server"
+        assert data["name_for_model"] == "gt_mcp"
+        assert "Georgia Tech" in data["description_for_human"]
+        assert data["auth"]["type"] == "none"
+        assert data["api"]["type"] == "openapi"
+        assert "/openapi.json" in data["api"]["url"]
+        assert data["api"]["is_user_authenticated"] is False
+    
+    def test_legal_endpoint(self, client):
+        """Test legal information endpoint."""
+        response = client.get("/legal")
+        assert response.status_code == 200
+        assert "application/json" in response.headers["content-type"]
+        
+        data = response.json()
+        assert data["service_name"] == "Georgia Tech MCP Server"
+        assert data["version"] == "2.1.0"
+        assert "terms_of_service" in data
+        assert "privacy_policy" in data
+        assert "disclaimer" in data
+        assert "data_sources" in data
+        assert isinstance(data["data_sources"], list)
+        assert len(data["data_sources"]) > 0
 
 
 class TestFastAPIServerPerformance:

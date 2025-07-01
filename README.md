@@ -128,6 +128,8 @@ GET  /api/courses/{term}/{crn}  # Detailed course information
 GET  /api/research              # Research paper search (query params: keywords, max_records)
 GET  /docs                      # Interactive API documentation
 GET  /openapi.json              # OpenAPI specification
+GET  /.well-known/ai-plugin.json # ChatGPT AI plugin manifest
+GET  /legal                     # Legal information and terms
 ```
 
 ### Example ChatGPT Queries
@@ -337,17 +339,17 @@ The scraper includes configurable delays and retry logic to be respectful to the
 
 The project includes comprehensive testing for all integrated systems:
 
-### Comprehensive Test Suite (122+ Tests)
-- **36 HTTP Server Tests**: FastAPI endpoint testing and ChatGPT integration validation
+### Comprehensive Test Suite (124+ Tests)
+- **38 HTTP Server Tests**: FastAPI endpoint testing and ChatGPT integration validation
 - **17 External Server Tests**: Real HTTP server integration testing with subprocess management
 - **69+ MCP Unit Tests**: Original MCP functionality validation and client testing
 
 ### HTTP Server & ChatGPT Integration Tests
 ```bash
-# Run all HTTP integration tests (36 tests)
+# Run all HTTP integration tests (38 tests)
 python -m pytest tests/test_fastapi_server.py tests/test_external_server.py -v
 
-# Run FastAPI server tests (19 tests)
+# Run FastAPI server tests (21 tests)
 python -m pytest tests/test_fastapi_server.py -v
 
 # Run external server tests (17 tests)  
@@ -389,11 +391,11 @@ python test_expanded_server.py
 
 ### Test Categories
 
-#### FastAPI Server Tests (19 tests)
+#### FastAPI Server Tests (21 tests)
 - ✅ **Basic Functionality**: Root, health, and tools endpoints
 - ✅ **OSCAR Integration**: Semesters, subjects, courses, and details with mocked data
 - ✅ **Research Integration**: Paper search and research endpoints
-- ✅ **ChatGPT Compatibility**: CORS, JSON responses, error handling
+- ✅ **ChatGPT Compatibility**: CORS, JSON responses, AI plugin manifest, legal endpoint
 - ✅ **Performance**: Concurrent requests, large responses, error recovery
 
 #### External Server Tests (17 tests)  

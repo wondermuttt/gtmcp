@@ -5,11 +5,13 @@ import argparse
 import json
 import logging
 from typing import Any, Dict, List, Optional
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from .config import Config, load_config
@@ -75,9 +77,13 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/",
+         tags=["Server Info"],
+         summary="Server information",
+         description="Get basic server information, features, and available endpoints",
+         response_description="Server metadata and endpoint listing")
 async def root():
-    """Root endpoint with server information."""
+    """Get server information, features, and available endpoints."""
     return {
         "name": "Georgia Tech MCP Server",
         "version": "2.1.0",
@@ -94,14 +100,82 @@ async def root():
             "subjects": "/api/subjects/{term_code}",
             "courses": "/api/courses",
             "course_details": "/api/courses/{term_code}/{crn}",
-            "research": "/api/research"
+            "research": "/api/research",
+            "openapi": "/openapi.json",
+            "ai_plugin": "/.well-known/ai-plugin.json"
         }
     }
 
 
-@app.get("/health")
+@app.get("/.well-known/ai-plugin.json")
+async def ai_plugin_manifest():
+    """ChatGPT AI Plugin manifest for discovery."""
+    # Get the server configuration for the correct base URL
+    global config
+    
+    # Determine the base URL - use the configured host/port
+    if config and hasattr(config, 'server'):
+        host = config.server.host if config.server.host != "0.0.0.0" else "localhost"
+        port = config.server.port
+        base_url = f"http://{host}:{port}"
+    else:
+        # Fallback if config not available
+        base_url = "http://localhost:8080"
+    
+    return {
+        "schema_version": "v1",
+        "name_for_human": "GT MCP Server",
+        "name_for_model": "gt_mcp",
+        "description_for_human": "Access Georgia Tech course schedules, research papers, and campus information.",
+        "description_for_model": "Plugin for accessing Georgia Tech courses, semesters, subjects, course details, and research papers. Provides comprehensive access to OSCAR course system and SMARTech research repository with 500 error fixes applied.",
+        "auth": {
+            "type": "none"
+        },
+        "api": {
+            "type": "openapi",
+            "url": f"{base_url}/openapi.json",
+            "is_user_authenticated": False
+        },
+        "logo_url": f"{base_url}/static/logo.png",
+        "contact_email": "support@gtmcp.example.com",
+        "legal_info_url": f"{base_url}/legal"
+    }
+
+
+@app.get("/legal")
+async def legal_info():
+    """Legal information endpoint."""
+    return {
+        "service_name": "Georgia Tech MCP Server",
+        "version": "2.1.0",
+        "terms_of_service": "This service provides access to publicly available Georgia Tech course and research information. Use of this service is subject to Georgia Tech's acceptable use policies.",
+        "privacy_policy": "This service does not collect or store personal information. All data accessed is publicly available through Georgia Tech's official systems.",
+        "disclaimer": "This is an unofficial service not affiliated with Georgia Tech. Course and research information is provided as-is without warranty.",
+        "data_sources": [
+            "Georgia Tech OSCAR course system",
+            "Georgia Tech SMARTech research repository"
+        ],
+        "contact": "For questions about this service, please refer to the source code repository.",
+        "last_updated": "2024-01-01"
+    }
+
+
+# Mount static files for logo and other assets
+# Note: Create a static directory with logo.png if needed
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except RuntimeError:
+    # Static directory doesn't exist, that's okay
+    pass
+
+
+@app.get("/health",
+         tags=["Server Info"],
+         summary="Health check",
+         description="Check the health status of the server and connected services",
+         response_description="Health status of server and all integrated services")
 async def health_check():
-    """Health check endpoint."""
+    """Check the health status of the server and all connected services."""
     health_status = {
         "status": "healthy",
         "timestamp": asyncio.get_event_loop().time(),
@@ -141,9 +215,13 @@ async def health_check():
     return health_status
 
 
-@app.get("/tools")
+@app.get("/tools",
+         tags=["Server Info"],
+         summary="List MCP tools",
+         description="Get list of available MCP tools and their parameters",
+         response_description="Complete list of MCP tools with descriptions and parameters")
 async def list_tools():
-    """List available MCP tools."""
+    """Get list of available MCP tools and their parameters."""
     return {
         "tools": [
             {
@@ -188,9 +266,13 @@ async def list_tools():
     }
 
 
-@app.get("/api/semesters")
+@app.get("/api/semesters", 
+         tags=["Academic"],
+         summary="Get available semesters",
+         description="Retrieve list of available academic semesters for course searches",
+         response_description="List of semesters with codes, names, and availability status")
 async def get_available_semesters():
-    """Get available semesters."""
+    """Get available semesters for course searches."""
     try:
         with oscar_client:
             semesters = oscar_client.get_available_semesters()
@@ -211,9 +293,13 @@ async def get_available_semesters():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/subjects/{term_code}")
+@app.get("/api/subjects/{term_code}",
+         tags=["Academic"],
+         summary="Get subjects for semester",
+         description="Retrieve available subjects/departments for a specific semester",
+         response_description="List of subjects with codes and names")
 async def get_subjects(term_code: str):
-    """Get subjects for a semester."""
+    """Get available subjects/departments for a specific semester."""
     try:
         with oscar_client:
             subjects = oscar_client.get_subjects(term_code)
@@ -234,14 +320,18 @@ async def get_subjects(term_code: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/courses")
+@app.get("/api/courses",
+         tags=["Academic"],
+         summary="Search courses",
+         description="Search for courses by semester, subject, course number, or title",
+         response_description="List of matching courses with details")
 async def search_courses(
     term_code: str,
     subject: str,
     course_num: Optional[str] = None,
     title: Optional[str] = None
 ):
-    """Search for courses."""
+    """Search for courses by semester, subject, course number, or title."""
     try:
         with oscar_client:
             courses = oscar_client.search_courses(term_code, subject, course_num, title)
@@ -266,9 +356,13 @@ async def search_courses(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/courses/{term_code}/{crn}")
+@app.get("/api/courses/{term_code}/{crn}",
+         tags=["Academic"],
+         summary="Get course details",
+         description="Get detailed information for a specific course including registration info",
+         response_description="Detailed course information with seats, waitlist, and restrictions")
 async def get_course_details(term_code: str, crn: str):
-    """Get course details."""
+    """Get detailed information for a specific course including registration status."""
     try:
         with oscar_client:
             details = oscar_client.get_course_details(term_code, crn)
@@ -301,12 +395,16 @@ async def get_course_details(term_code: str, crn: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/research")
+@app.get("/api/research",
+         tags=["Research"],
+         summary="Search research papers",
+         description="Search Georgia Tech research papers and publications by keywords",
+         response_description="List of research papers matching the search criteria")
 async def search_research_papers(
     keywords: str,  # Comma-separated keywords
     max_records: int = 10
 ):
-    """Search research papers."""
+    """Search Georgia Tech research papers and publications by keywords."""
     try:
         keyword_list = [k.strip() for k in keywords.split(",")]
         
