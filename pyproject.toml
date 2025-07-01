@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gtmcp"
-version = "2.0.0"
-description = "Georgia Tech Comprehensive MCP Server - Multi-system integration platform for OSCAR, SMARTech, and campus services"
+version = "2.1.0"
+description = "Georgia Tech Comprehensive MCP Server - Multi-system integration platform with OSCAR 500 error fixes, SMARTech research, and campus services"
 authors = [{name = "GT MCP Server", email = "noreply@example.com"}]
 license = {text = "MIT"}
 readme = "README.md"

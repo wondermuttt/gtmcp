@@ -39,8 +39,8 @@ if conda env list | grep -q "^gtmcp "; then
 fi
 
 # Create conda environment
-echo "🐍 Creating conda environment 'gtmcp' with Python 3.11..."
-conda create -n gtmcp python=3.11 -y
+echo "🐍 Creating conda environment 'gtmcp' with Python 3.10/3.11..."
+conda create -n gtmcp python=3.10 -y
 
 # Activate environment and install dependencies
 echo "📦 Installing dependencies..."
@@ -64,16 +64,20 @@ echo ""
 echo "  2. Test the expanded functionality:"
 echo "     python test_expanded_server.py"
 echo ""
-echo "  3. Run the original MCP server (course scheduling only):"
+echo "  3. Validate OSCAR improvements (no more 500 errors):"
+echo "     python validate_oscar_improvements.py"
+echo ""
+echo "  4. Run the original MCP server (course scheduling only):"
 echo "     python -m gtmcp.server"
 echo ""
-echo "  4. Run the EXPANDED MCP server (all GT systems):"
+echo "  5. Run the EXPANDED MCP server (all GT systems):"
 echo "     python -m gtmcp.server_expanded"
 echo ""
-echo "  5. Or run with custom config:"
+echo "  6. Or run with custom config:"
 echo "     python -m gtmcp.server_expanded --config config.json"
 echo ""
-echo "🌟 NEW FEATURES:"
+echo "🌟 FEATURES:"
+echo "  • OSCAR course search with 500 error fixes"
 echo "  • Research paper search (SMARTech repository)"
 echo "  • Faculty research matching"
 echo "  • Campus location services"

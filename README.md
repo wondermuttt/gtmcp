@@ -1,14 +1,15 @@
 # Georgia Tech Comprehensive MCP Server
 
-An advanced MCP (Model Context Protocol) server that provides LLMs with comprehensive access to Georgia Tech's academic and research ecosystem, integrating multiple GT systems for intelligent workflows.
+An advanced MCP (Model Context Protocol) server that provides LLMs with comprehensive access to Georgia Tech's academic and research ecosystem, integrating multiple GT systems for intelligent workflows. **Now with OSCAR 500 error fixes for reliable course searching.**
 
 ## Features
 
-### Core Course Scheduling (OSCAR System)
+### Core Course Scheduling (OSCAR System) ✨ **500 Error Fixes Applied**
 - **Available Semesters**: Get list of available semesters for course searches
 - **Subject Lookup**: Get available departments/subjects for a given semester  
-- **Course Search**: Search for courses by subject, course number, or title
+- **Course Search**: Search for courses by subject, course number, or title with improved reliability
 - **Course Details**: Get detailed information including seat availability, waitlist info, and restrictions
+- **Improved Workflow**: Fixed 500 server errors by implementing proper GT navigation patterns
 
 ### Research & Knowledge Systems (SMARTech Repository)
 - **Research Paper Search**: Search 500+ research papers, theses, and publications
