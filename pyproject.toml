@@ -61,6 +61,7 @@ dev = [
 gtmcp = "gtmcp.server:main"
 gtmcp-expanded = "gtmcp.server_expanded:main"
 gtmcp-http = "gtmcp.server_http:main"
+gtmcp-fastapi = "gtmcp.server_fastapi:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -29,6 +29,9 @@ starlette>=0.27.0
 uvicorn>=0.23.1
 python-dotenv>=0.21.0
 
+# FastAPI for HTTP server
+fastapi>=0.104.0
+
 # Core web scraping and data processing
 httpcore>=1.0.0
 h11>=0.16.0
