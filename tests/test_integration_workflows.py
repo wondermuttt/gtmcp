@@ -6,7 +6,7 @@ import time
 from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime, timedelta
 
-from gtmcp.server_expanded import GTMCPServerExpanded
+from gtmcp import server_expanded
 from gtmcp.models import (
     Semester, Subject, CourseInfo, CourseDetails, RegistrationInfo,
     ResearchPaper, FacultyResearchProfile, CampusLocation, RouteOptimization
@@ -19,8 +19,8 @@ class TestCrossSystemWorkflows:
     
     @pytest.fixture
     def server(self):
-        """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        """Get server instance for testing."""
+        return server_expanded.server
     
     @pytest.fixture
     def mock_ai_courses(self):
@@ -159,9 +159,9 @@ class TestCrossSystemWorkflows:
         ]
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_ai_research_course_discovery_workflow(self, mock_places, mock_smartech, mock_oscar, server, 
                                                         mock_ai_courses, mock_ai_research, mock_accessible_buildings):
         """Test complete workflow: Find AI courses related to research interests."""
@@ -207,8 +207,8 @@ class TestCrossSystemWorkflows:
         assert any("Klaus" in location['name'] for location in campus_locations)
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_accessibility_aware_course_planning(self, mock_places, mock_oscar, server,
                                                       mock_ai_courses, mock_accessible_buildings):
         """Test finding courses with accessibility considerations."""
@@ -245,7 +245,7 @@ class TestCrossSystemWorkflows:
         assert "Computer Science" in building_details['departments']
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_research_collaboration_discovery(self, mock_smartech, server, mock_faculty_profiles, mock_ai_research):
         """Test finding research collaboration opportunities."""
         # Mock faculty research
@@ -292,9 +292,9 @@ class TestCrossSystemWorkflows:
         assert research_trends['total_papers'] == 55
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_multi_semester_planning_workflow(self, mock_places, mock_smartech, mock_oscar, server):
         """Test planning across multiple semesters."""
         # Mock multiple semesters
@@ -354,9 +354,9 @@ class TestCrossSystemWorkflows:
         assert len(route['step_by_step_directions']) >= 3
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_real_world_student_scenario(self, mock_places, mock_smartech, mock_oscar, server,
                                              mock_ai_courses, mock_ai_research, mock_accessible_buildings):
         """Test complete real-world student workflow scenario."""
@@ -412,11 +412,11 @@ class TestWorkflowPerformanceMetrics:
     
     @pytest.fixture
     def server(self):
-        """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        """Get server instance for testing."""
+        return server_expanded.server
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_large_dataset_workflow_performance(self, mock_smartech, server):
         """Test workflow performance with large datasets."""
         # Create large dataset (200+ papers)
@@ -460,9 +460,9 @@ class TestWorkflowPerformanceMetrics:
         assert all('authors' in paper for paper in result['papers'])
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_concurrent_workflow_execution(self, mock_places, mock_smartech, mock_oscar, server):
         """Test concurrent execution of multiple workflows."""
         # Mock data for concurrent workflows
@@ -493,7 +493,7 @@ class TestWorkflowPerformanceMetrics:
         assert execution_time < 3.0  # Should complete within 3 seconds concurrently
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_workflow_memory_efficiency(self, mock_smartech, server):
         """Test memory efficiency with large result sets."""
         # Create large dataset with varying sizes
@@ -532,8 +532,8 @@ class TestWorkflowPerformanceMetrics:
         assert len(large_abstract_papers) >= 5  # Should have some large abstracts
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_workflow_with_system_degradation(self, mock_smartech, mock_oscar, server):
         """Test workflow behavior when some systems are degraded."""
         # Simulate OSCAR working but SMARTech having issues
@@ -578,11 +578,11 @@ class TestWorkflowSecurityValidation:
     
     @pytest.fixture
     def server(self):
-        """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        """Get server instance for testing."""
+        return server_expanded.server
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_input_sanitization_workflow(self, mock_smartech, server):
         """Test that workflows properly sanitize user inputs."""
         mock_smartech.search_records.return_value = {'papers': [], 'count': 0}
@@ -615,7 +615,7 @@ class TestWorkflowSecurityValidation:
                 assert 'internal' not in error_message
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
+    @patch('gtmcp.server_expanded.oscar_client')
     async def test_error_information_disclosure(self, mock_oscar, server):
         """Test that error messages don't disclose sensitive information."""
         # Simulate internal error
@@ -636,9 +636,9 @@ class TestWorkflowSecurityValidation:
             assert 'internal.db.server' not in error_message
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_system_health_information_security(self, mock_places, mock_smartech, mock_oscar, server):
         """Test that system health doesn't expose internal details."""
         # Mock health status with some internal information
@@ -684,12 +684,12 @@ class TestWorkflowDataValidation:
     
     @pytest.fixture
     def server(self):
-        """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        """Get server instance for testing."""
+        return server_expanded.server
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.oscar_client')
     async def test_cross_system_data_validation(self, mock_oscar, mock_smartech, server):
         """Test that data is consistent across systems."""
         # Mock research papers with course references
@@ -732,7 +732,7 @@ class TestWorkflowDataValidation:
         assert len(matching_courses) > 0
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
+    @patch('gtmcp.server_expanded.smartech_client')
     async def test_workflow_data_freshness(self, mock_smartech, server):
         """Test that workflows return recent/fresh data."""
         # Mock papers with varying dates
@@ -778,9 +778,9 @@ class TestWorkflowDataValidation:
         assert len(recent_papers) >= 1
     
     @pytest.mark.asyncio
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
-    @patch('gtmcp.server_expanded.GTMCPServerExpanded.places_client')
+    @patch('gtmcp.server_expanded.oscar_client')
+    @patch('gtmcp.server_expanded.smartech_client')
+    @patch('gtmcp.server_expanded.places_client')
     async def test_workflow_completeness_validation(self, mock_places, mock_smartech, mock_oscar, server):
         """Test that workflows return complete data sets."""
         # Mock complete course details

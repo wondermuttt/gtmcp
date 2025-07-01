@@ -14,7 +14,7 @@ from gtmcp.clients.base_client import (
 
 
 class TestBaseClient(BaseClient):
-    """Test implementation of BaseClient."""
+    """Mock implementation of BaseClient for testing."""
     
     def test_connection(self) -> bool:
         return True
@@ -28,7 +28,7 @@ class TestBaseClientInit:
     
     def test_init_with_defaults(self):
         """Test initialization with default values."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         assert client.base_url == "https://example.com"
         assert client.timeout == 30
@@ -40,7 +40,7 @@ class TestBaseClientInit:
     
     def test_init_with_custom_values(self):
         """Test initialization with custom values."""
-        client = TestBaseClient(
+        client = MockBaseClient(
             "https://example.com/",
             timeout=60,
             max_retries=5,
@@ -60,7 +60,7 @@ class TestBaseClientContextManagers:
     
     def test_sync_context_manager(self):
         """Test synchronous context manager."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with client as c:
             assert c._session is not None
@@ -72,7 +72,7 @@ class TestBaseClientContextManagers:
     @pytest.mark.asyncio
     async def test_async_context_manager(self):
         """Test asynchronous context manager."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         async with client as c:
             assert c._async_session is not None
@@ -92,7 +92,7 @@ class TestBaseClientRequests:
         mock_response.raise_for_status.return_value = None
         mock_request.return_value = mock_response
         
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with client:
             response = client._make_request('GET', '/test')
@@ -107,7 +107,7 @@ class TestBaseClientRequests:
         mock_response.status_code = 429
         mock_request.return_value = mock_response
         
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with client:
             with pytest.raises(RateLimitError):
@@ -128,7 +128,7 @@ class TestBaseClientRequests:
         
         mock_request.side_effect = [mock_response_fail, mock_response_fail, mock_response_success]
         
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with client:
             response = client._make_request('GET', '/test')
@@ -146,7 +146,7 @@ class TestBaseClientRequests:
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError()
         mock_request.return_value = mock_response
         
-        client = TestBaseClient("https://example.com", max_retries=2)
+        client = MockBaseClient("https://example.com", max_retries=2)
         
         with client:
             with pytest.raises(NetworkError, match="Server error after 2 attempts"):
@@ -157,7 +157,7 @@ class TestBaseClientRequests:
     
     def test_make_request_without_context_manager(self):
         """Test request without context manager raises error."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with pytest.raises(ClientError, match="Client not initialized"):
             client._make_request('GET', '/test')
@@ -173,7 +173,7 @@ class TestBaseClientRateLimiting:
         # Mock time progression
         mock_datetime.now.return_value.timestamp.side_effect = [0.0, 0.5, 1.5]
         
-        client = TestBaseClient("https://example.com", delay=1.0)
+        client = MockBaseClient("https://example.com", delay=1.0)
         
         # First call - no sleep
         client._enforce_rate_limit()
@@ -190,7 +190,7 @@ class TestBaseClientRateLimiting:
         # Mock time progression
         mock_datetime.now.return_value.timestamp.side_effect = [0.0, 0.3, 1.3]
         
-        client = TestBaseClient("https://example.com", delay=1.0)
+        client = MockBaseClient("https://example.com", delay=1.0)
         
         # First call - no sleep
         await client._aenforce_rate_limit()
@@ -206,19 +206,19 @@ class TestBaseClientHealthStatus:
     
     def test_get_health_status_healthy(self):
         """Test health status when service is healthy."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with patch.object(client, 'test_connection', return_value=True):
             status = client.get_health_status()
         
-        assert status['service'] == 'TestBaseClient'
+        assert status['service'] == 'MockBaseClient'
         assert status['status'] == 'healthy'
         assert status['base_url'] == 'https://example.com'
         assert 'timestamp' in status
     
     def test_get_health_status_unhealthy(self):
         """Test health status when service is unhealthy."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with patch.object(client, 'test_connection', return_value=False):
             status = client.get_health_status()
@@ -227,7 +227,7 @@ class TestBaseClientHealthStatus:
     
     def test_get_health_status_error(self):
         """Test health status when connection test raises error."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with patch.object(client, 'test_connection', side_effect=Exception("Connection failed")):
             status = client.get_health_status()
@@ -238,12 +238,12 @@ class TestBaseClientHealthStatus:
     @pytest.mark.asyncio
     async def test_aget_health_status_healthy(self):
         """Test async health status when service is healthy."""
-        client = TestBaseClient("https://example.com")
+        client = MockBaseClient("https://example.com")
         
         with patch.object(client, 'atest_connection', return_value=True):
             status = await client.aget_health_status()
         
-        assert status['service'] == 'TestBaseClient'
+        assert status['service'] == 'MockBaseClient'
         assert status['status'] == 'healthy'
         assert status['base_url'] == 'https://example.com'
         assert 'timestamp' in status

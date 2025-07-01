@@ -5,7 +5,7 @@ import asyncio
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from datetime import datetime
 
-from gtmcp.server_expanded import GTMCPServerExpanded
+from gtmcp import server_expanded
 from gtmcp.models import (
     Semester, Subject, CourseInfo, CourseDetails, RegistrationInfo,
     ResearchPaper, FacultyResearchProfile, CampusLocation, RouteOptimization
@@ -19,7 +19,7 @@ class TestExpandedServerListTools:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     def test_list_tools_count(self, server):
         """Test that all 17 tools are listed."""
@@ -74,7 +74,7 @@ class TestExpandedServerCallTool:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.mark.asyncio
     async def test_call_nonexistent_tool(self, server):
@@ -95,7 +95,7 @@ class TestCourseAcademicTools:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.fixture
     def mock_semesters(self):
@@ -228,7 +228,7 @@ class TestResearchKnowledgeTools:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.fixture
     def mock_research_papers(self):
@@ -356,7 +356,7 @@ class TestCampusLocationTools:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.fixture
     def mock_locations(self):
@@ -464,7 +464,7 @@ class TestCrossSystemIntegrationTools:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.mark.asyncio
     @patch('gtmcp.server_expanded.GTMCPServerExpanded.smartech_client')
@@ -642,7 +642,7 @@ class TestExpandedServerIntegration:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.mark.asyncio
     async def test_server_initialization(self, server):
@@ -679,7 +679,7 @@ class TestExpandedServerEdgeCases:
     @pytest.fixture
     def server(self):
         """Create server instance for testing."""
-        return GTMCPServerExpanded()
+        return server_expanded.server
     
     @pytest.mark.asyncio
     @patch('gtmcp.server_expanded.GTMCPServerExpanded.oscar_client')
