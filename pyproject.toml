@@ -60,6 +60,7 @@ dev = [
 [project.scripts]
 gtmcp = "gtmcp.server:main"
 gtmcp-expanded = "gtmcp.server_expanded:main"
+gtmcp-http = "gtmcp.server_http:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
