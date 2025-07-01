@@ -89,7 +89,7 @@ An advanced MCP (Model Context Protocol) server that provides LLMs with comprehe
 5. **Run the server:**
    ```bash
    # ChatGPT HTTP API server:
-   python -m gtmcp.server_fastapi --host localhost --port 8000
+   python -m gtmcp.server_fastapi --host 0.0.0.0 --port 8080
    
    # Expanded server (recommended):
    python -m gtmcp.server_expanded
@@ -105,7 +105,7 @@ An advanced MCP (Model Context Protocol) server that provides LLMs with comprehe
    ```bash
    ./start_server_chatgpt.sh
    ```
-   Server will run on `http://localhost:8000` by default.
+   Server will run on `http://0.0.0.0:8080` by default.
 
 2. **Configure ChatGPT:**
    - Open ChatGPT settings
@@ -114,7 +114,7 @@ An advanced MCP (Model Context Protocol) server that provides LLMs with comprehe
    - Create new custom tool:
      - **Name**: Georgia Tech MCP Server
      - **Description**: Access GT course schedules and research
-     - **URL**: `http://localhost:8000`
+     - **URL**: `http://localhost:8080`
 
 ### Available HTTP Endpoints
 ```

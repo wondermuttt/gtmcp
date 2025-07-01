@@ -30,8 +30,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate gtmcp
 
 # Parse command line arguments
-HOST=${1:-localhost}
-PORT=${2:-8000}
+HOST=${1:-0.0.0.0}
+PORT=${2:-8080}
 
 # Check if config file exists
 CONFIG_ARG=""

@@ -347,8 +347,8 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Georgia Tech FastAPI MCP Server")
     parser.add_argument("--config", help="Path to configuration file")
-    parser.add_argument("--host", default="localhost", help="Server host")
-    parser.add_argument("--port", type=int, default=8000, help="Server port")
+    parser.add_argument("--host", default="0.0.0.0", help="Server host")
+    parser.add_argument("--port", type=int, default=8080, help="Server port")
     parser.add_argument("--log-level", default="INFO", help="Log level")
     
     args = parser.parse_args()
