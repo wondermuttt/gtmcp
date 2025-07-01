@@ -118,23 +118,20 @@ class OscarClient(BaseClient):
             logger.error(f"Error fetching subjects for term {term_code}: {e}")
             raise NetworkError(f"Failed to fetch subjects for term {term_code}: {e}")
     
-    def search_courses(
-        self, 
-        term_code: str, 
-        subject: str, 
-        course_num: Optional[str] = None, 
-        title: Optional[str] = None
-    ) -> List[CourseInfo]:
-        """Search for courses based on criteria."""
+    def get_courses_by_subject(self, term_code: str, subject: str) -> List[CourseInfo]:
+        """
+        Get ALL courses for a subject using the correct OSCAR workflow.
+        This replaces the problematic search_courses method.
+        """
         if not term_code or not term_code.strip():
             raise ValidationError("term_code is required and cannot be empty")
         if not subject or not subject.strip():
             raise ValidationError("subject is required and cannot be empty")
         
         try:
-            logger.info(f"Searching courses for term {term_code}, subject {subject}")
+            logger.info(f"Getting all courses for term {term_code}, subject {subject}")
             
-            # First submit term to get to course search form
+            # Step 1: Submit term to get to course selection form
             term_form_data = {
                 'p_calling_proc': 'bwckschd.p_disp_dyn_sched',
                 'p_term': term_code
@@ -142,34 +139,32 @@ class OscarClient(BaseClient):
             
             response = self._make_request('POST', self.term_submit_url, data=term_form_data)
             
-            # Now submit course search criteria
-            search_form_data = [
+            # Step 2: Submit subject selection to get course list
+            # This is the key fix - we select the subject to get ALL courses, not search
+            subject_form_data = [
                 ('term_in', term_code),
-                ('sel_subj', 'dummy'),  # Required dummy value
-                ('sel_subj', subject),  # Actual subject
+                ('sel_subj', 'dummy'),  # Required first entry
+                ('sel_subj', subject),  # Actual subject selection
                 ('sel_day', 'dummy'),
-                ('sel_schd', '%25'),  # All schedule types
+                ('sel_schd', '%'),      # All schedule types
                 ('sel_insm', 'dummy'),
-                ('sel_camp', '%25'),  # All campuses
-                ('sel_levl', '%25'),  # All levels
-                ('sel_sess', '%25'),  # All sessions
-                ('sel_instr', '%25'), # All instructors
-                ('sel_ptrm', '%25'),  # All part of term
-                ('sel_attr', '%25'),  # All attributes
+                ('sel_camp', '%'),      # All campuses  
+                ('sel_levl', '%'),      # All levels
+                ('sel_sess', '%'),      # All sessions
+                ('sel_instr', '%'),     # All instructors
+                ('sel_ptrm', '%'),      # All part of term
+                ('sel_attr', '%'),      # All attributes
+                ('sel_crse', ''),       # No specific course filter
+                ('sel_title', ''),      # No title filter
+                ('begin_hh', '0'),      # Time filters
+                ('begin_mi', '0'),
+                ('begin_ap', 'a'),
+                ('end_hh', '0'),
+                ('end_mi', '0'),
+                ('end_ap', 'a')
             ]
             
-            # Add optional filters
-            if course_num:
-                search_form_data.append(('sel_crse', course_num))
-            else:
-                search_form_data.append(('sel_crse', ''))
-                
-            if title:
-                search_form_data.append(('sel_title', title))
-            else:
-                search_form_data.append(('sel_title', ''))
-            
-            response = self._make_request('POST', self.course_search_url, data=search_form_data)
+            response = self._make_request('POST', self.course_search_url, data=subject_form_data)
             
             # Parse results
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -213,12 +208,43 @@ class OscarClient(BaseClient):
                         logger.warning(f"Error parsing course caption '{caption_text}': {e}")
                         continue
             
-            logger.info(f"Found {len(courses)} courses")
+            logger.info(f"Found {len(courses)} courses for {subject} in {term_code}")
             return courses
             
         except Exception as e:
-            logger.error(f"Error searching courses: {e}")
-            raise NetworkError(f"Failed to search courses: {e}")
+            logger.error(f"Error getting courses for {subject} in {term_code}: {e}")
+            raise NetworkError(f"Failed to get courses for {subject}: {e}")
+    
+    def search_courses(
+        self, 
+        term_code: str, 
+        subject: str, 
+        course_num: Optional[str] = None, 
+        title: Optional[str] = None
+    ) -> List[CourseInfo]:
+        """
+        Search for courses - now uses the working get_courses_by_subject method
+        and filters locally for better reliability.
+        """
+        # Get all courses for the subject first
+        all_courses = self.get_courses_by_subject(term_code, subject)
+        
+        # Apply local filtering if needed
+        filtered_courses = all_courses
+        
+        if course_num:
+            course_num = course_num.strip()
+            filtered_courses = [c for c in filtered_courses 
+                              if course_num in c.course_number or 
+                                 c.course_number.startswith(course_num)]
+        
+        if title:
+            title_lower = title.lower().strip()
+            filtered_courses = [c for c in filtered_courses 
+                              if title_lower in c.title.lower()]
+        
+        logger.info(f"Filtered to {len(filtered_courses)} courses from {len(all_courses)} total")
+        return filtered_courses
     
     def get_course_details(self, term_code: str, crn: str) -> CourseDetails:
         """Get detailed information for a specific course."""

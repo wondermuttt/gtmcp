@@ -43,14 +43,18 @@ async def test_oscar_client():
                     subjects = client.get_subjects(current_semester.code)
                     print(f"✅ Found {len(subjects)} subjects for {current_semester.name}")
                     
-                    # Test course search
+                    # Test improved course listing
                     if subjects:
                         cs_subject = next((s for s in subjects if s.code == 'CS'), subjects[0])
-                        courses = client.search_courses(current_semester.code, cs_subject.code)
-                        print(f"✅ Found {len(courses)} courses for {cs_subject.code}")
+                        courses = client.get_courses_by_subject(current_semester.code, cs_subject.code)
+                        print(f"✅ Found {len(courses)} courses for {cs_subject.code} (improved method)")
                         
-                        # Test course details
+                        # Test search filtering
                         if courses:
+                            search_results = client.search_courses(current_semester.code, cs_subject.code, course_num="1301")
+                            print(f"✅ Search filtering returned {len(search_results)} results for CS 1301")
+                            
+                            # Test course details
                             course = courses[0]
                             details = client.get_course_details(current_semester.code, course.crn)
                             print(f"✅ Retrieved details for {details.title}")
@@ -163,10 +167,10 @@ async def test_system_integration():
                     cs_subject = next((s for s in subjects if s.code == 'CS'), None)
                     
                     if cs_subject:
-                        cs_courses = oscar_client.search_courses(current_semester.code, 'CS')
+                        cs_courses = oscar_client.get_courses_by_subject(current_semester.code, 'CS')
                         
                         print(f"✅ Integration Test: Found {len(ai_papers['papers'])} AI papers and {len(cs_courses)} CS courses")
-                        print("   This demonstrates the potential for cross-system correlation")
+                        print("   This demonstrates successful cross-system integration")
                 
     except Exception as e:
         print(f"❌ Integration Test Error: {e}")

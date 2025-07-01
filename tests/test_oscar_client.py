@@ -181,14 +181,14 @@ class TestOscarClientCourseSearch:
     """Test course search functionality."""
     
     @patch('gtmcp.clients.oscar_client.OscarClient._make_request')
-    def test_search_courses_success(self, mock_request):
-        """Test successful course search."""
+    def test_get_courses_by_subject_success(self, mock_request):
+        """Test successful get_courses_by_subject method."""
         # Mock the term submission response
         term_response = Mock()
         term_response.content = "<html></html>"
         
-        # Mock the course search response
-        search_html = """
+        # Mock the course listing response
+        course_html = """
         <html>
             <table class="datadisplaytable">
                 <caption class="captiontext">
@@ -200,19 +200,24 @@ class TestOscarClientCourseSearch:
                     Data Structures - CS 1332 - 12346 - B
                 </caption>
             </table>
+            <table class="datadisplaytable">
+                <caption class="captiontext">
+                    Machine Learning - CS 7641 - 12347 - C
+                </caption>
+            </table>
         </html>
         """
-        search_response = Mock()
-        search_response.content = search_html
+        course_response = Mock()
+        course_response.content = course_html
         
-        mock_request.side_effect = [term_response, search_response]
+        mock_request.side_effect = [term_response, course_response]
         
         client = OscarClient()
         
         with client:
-            courses = client.search_courses("202502", "CS")
+            courses = client.get_courses_by_subject("202502", "CS")
         
-        assert len(courses) == 2
+        assert len(courses) == 3
         assert courses[0].title == "Intro to Programming"
         assert courses[0].subject == "CS"
         assert courses[0].course_number == "1301"
@@ -224,6 +229,121 @@ class TestOscarClientCourseSearch:
         assert courses[1].course_number == "1332"
         assert courses[1].crn == "12346"
         assert courses[1].section == "B"
+        
+        assert courses[2].title == "Machine Learning"
+        assert courses[2].subject == "CS"
+        assert courses[2].course_number == "7641"
+        assert courses[2].crn == "12347"
+        assert courses[2].section == "C"
+    
+    @patch.object(OscarClient, 'get_courses_by_subject')
+    def test_search_courses_success(self, mock_get_courses):
+        """Test successful course search using improved method."""
+        # Mock get_courses_by_subject to return all courses
+        mock_courses = [
+            CourseInfo(
+                title="Intro to Programming",
+                subject="CS",
+                course_number="1301",
+                crn="12345",
+                section="A"
+            ),
+            CourseInfo(
+                title="Data Structures",
+                subject="CS", 
+                course_number="1332",
+                crn="12346",
+                section="B"
+            ),
+            CourseInfo(
+                title="Advanced Programming",
+                subject="CS",
+                course_number="1331",
+                crn="12348",
+                section="A"
+            )
+        ]
+        mock_get_courses.return_value = mock_courses
+        
+        client = OscarClient()
+        
+        with client:
+            # Test basic search (no filters)
+            courses = client.search_courses("202502", "CS")
+        
+        assert len(courses) == 3
+        mock_get_courses.assert_called_once_with("202502", "CS")
+    
+    @patch.object(OscarClient, 'get_courses_by_subject')
+    def test_search_courses_with_course_number_filter(self, mock_get_courses):
+        """Test course search with course number filter."""
+        mock_courses = [
+            CourseInfo(title="Intro to Programming", subject="CS", course_number="1301", crn="12345", section="A"),
+            CourseInfo(title="Advanced Programming", subject="CS", course_number="1331", crn="12348", section="A"),
+            CourseInfo(title="Data Structures", subject="CS", course_number="1332", crn="12346", section="B")
+        ]
+        mock_get_courses.return_value = mock_courses
+        
+        client = OscarClient()
+        
+        with client:
+            # Search for courses containing "1301"
+            filtered_courses = client.search_courses("202502", "CS", course_num="1301")
+        
+        assert len(filtered_courses) == 1
+        assert filtered_courses[0].course_number == "1301"
+        assert filtered_courses[0].title == "Intro to Programming"
+    
+    @patch.object(OscarClient, 'get_courses_by_subject')
+    def test_search_courses_with_title_filter(self, mock_get_courses):
+        """Test course search with title filter."""
+        mock_courses = [
+            CourseInfo(title="Intro to Programming", subject="CS", course_number="1301", crn="12345", section="A"),
+            CourseInfo(title="Advanced Programming", subject="CS", course_number="1331", crn="12348", section="A"),
+            CourseInfo(title="Data Structures", subject="CS", course_number="1332", crn="12346", section="B")
+        ]
+        mock_get_courses.return_value = mock_courses
+        
+        client = OscarClient()
+        
+        with client:
+            # Search for courses with "Programming" in title
+            filtered_courses = client.search_courses("202502", "CS", title="Programming")
+        
+        assert len(filtered_courses) == 2
+        assert all("Programming" in course.title for course in filtered_courses)
+    
+    @patch.object(OscarClient, 'get_courses_by_subject')
+    def test_search_courses_with_multiple_filters(self, mock_get_courses):
+        """Test course search with multiple filters."""
+        mock_courses = [
+            CourseInfo(title="Intro to Programming", subject="CS", course_number="1301", crn="12345", section="A"),
+            CourseInfo(title="Advanced Programming", subject="CS", course_number="1331", crn="12348", section="A"),
+            CourseInfo(title="Intro to Data Structures", subject="CS", course_number="1302", crn="12346", section="B")
+        ]
+        mock_get_courses.return_value = mock_courses
+        
+        client = OscarClient()
+        
+        with client:
+            # Search for courses with "130" in course number AND "Intro" in title
+            filtered_courses = client.search_courses("202502", "CS", course_num="130", title="Intro")
+        
+        assert len(filtered_courses) == 2
+        assert all("130" in course.course_number for course in filtered_courses)
+        assert all("Intro" in course.title for course in filtered_courses)
+    
+    def test_get_courses_by_subject_missing_required_args(self):
+        """Test get_courses_by_subject with missing required arguments."""
+        client = OscarClient()
+        
+        with pytest.raises(ValidationError, match="term_code is required"):
+            with client:
+                client.get_courses_by_subject("", "CS")
+        
+        with pytest.raises(ValidationError, match="subject is required"):
+            with client:
+                client.get_courses_by_subject("202502", "")
     
     def test_search_courses_missing_required_args(self):
         """Test course search with missing required arguments."""

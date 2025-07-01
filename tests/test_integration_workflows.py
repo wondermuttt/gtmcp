@@ -171,7 +171,8 @@ class TestCrossSystemWorkflows:
             'count': 3
         }
         
-        # Mock course search
+        # Mock course methods
+        mock_oscar.get_courses_by_subject.return_value = mock_ai_courses
         mock_oscar.search_courses.return_value = mock_ai_courses
         
         # Mock building search for accessibility
@@ -211,7 +212,8 @@ class TestCrossSystemWorkflows:
     async def test_accessibility_aware_course_planning(self, mock_places, mock_oscar, server,
                                                       mock_ai_courses, mock_accessible_buildings):
         """Test finding courses with accessibility considerations."""
-        # Mock course search
+        # Mock course methods
+        mock_oscar.get_courses_by_subject.return_value = mock_ai_courses
         mock_oscar.search_courses.return_value = mock_ai_courses
         
         # Mock accessible building details
