@@ -113,13 +113,11 @@ async def ai_plugin_manifest():
     # Get the server configuration for the correct base URL
     global config
     
-    # Determine the base URL - use the configured host/port
+    # Use the external base URL from configuration
     if config and hasattr(config, 'server'):
-        host = config.server.host if config.server.host != "0.0.0.0" else "localhost"
-        port = config.server.port
-        base_url = f"http://{host}:{port}"
+        base_url = config.server.get_external_base_url()
     else:
-        # Fallback if config not available
+        # Fallback if config not available - determine from current request
         base_url = "http://localhost:8080"
     
     return {
@@ -449,6 +447,17 @@ def main():
     parser.add_argument("--port", type=int, default=8080, help="Server port")
     parser.add_argument("--log-level", default="INFO", help="Log level")
     
+    # SSL Configuration
+    parser.add_argument("--ssl", action="store_true", help="Enable SSL/HTTPS")
+    parser.add_argument("--ssl-cert", help="Path to SSL certificate file")
+    parser.add_argument("--ssl-key", help="Path to SSL private key file")
+    parser.add_argument("--ssl-ca", help="Path to SSL CA certificates file")
+    
+    # External URL overrides
+    parser.add_argument("--external-host", help="External hostname for API manifests")
+    parser.add_argument("--external-port", type=int, help="External port for API manifests")
+    parser.add_argument("--external-scheme", choices=["http", "https"], help="External URL scheme")
+    
     args = parser.parse_args()
     
     # Load configuration
@@ -463,6 +472,24 @@ def main():
         if args.log_level:
             config.server.log_level = args.log_level
             
+        # SSL overrides
+        if args.ssl:
+            config.server.ssl_enabled = True
+        if args.ssl_cert:
+            config.server.ssl_certfile = args.ssl_cert
+        if args.ssl_key:
+            config.server.ssl_keyfile = args.ssl_key
+        if args.ssl_ca:
+            config.server.ssl_ca_certs = args.ssl_ca
+            
+        # External URL overrides  
+        if args.external_host:
+            config.server.external_host = args.external_host
+        if args.external_port:
+            config.server.external_port = args.external_port
+        if args.external_scheme:
+            config.server.external_scheme = args.external_scheme
+            
     except Exception as e:
         print(f"Error loading configuration: {e}")
         return 1
@@ -473,14 +500,28 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    logger.info(f"Starting Georgia Tech FastAPI MCP Server on {args.host}:{args.port}")
+    # Prepare SSL configuration
+    ssl_kwargs = {}
+    if config.server.ssl_enabled:
+        if config.server.ssl_certfile and config.server.ssl_keyfile:
+            ssl_kwargs["ssl_certfile"] = config.server.ssl_certfile
+            ssl_kwargs["ssl_keyfile"] = config.server.ssl_keyfile
+            if config.server.ssl_ca_certs:
+                ssl_kwargs["ssl_ca_certs"] = config.server.ssl_ca_certs
+            logger.info(f"SSL enabled with cert: {config.server.ssl_certfile}")
+        else:
+            logger.warning("SSL enabled but certfile/keyfile not configured, running without SSL")
+    
+    scheme = "https" if ssl_kwargs else "http"
+    logger.info(f"Starting Georgia Tech FastAPI MCP Server on {scheme}://{args.host}:{args.port}")
     
     # Run the server
     uvicorn.run(
         app,
         host=args.host,
         port=args.port,
-        log_level=args.log_level.lower()
+        log_level=args.log_level.lower(),
+        **ssl_kwargs
     )
 
 

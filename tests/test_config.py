@@ -34,6 +34,69 @@ class TestServerConfig:
         # Note: Pydantic doesn't enforce port range validation by default
         # This test is for documentation purposes
         # In production, additional validation could be added
+    
+    def test_ssl_configuration(self):
+        """Test SSL configuration settings."""
+        config = ServerConfig(
+            ssl_enabled=True,
+            ssl_certfile="/path/to/cert.pem",
+            ssl_keyfile="/path/to/key.pem",
+            ssl_ca_certs="/path/to/ca.pem"
+        )
+        assert config.ssl_enabled is True
+        assert config.ssl_certfile == "/path/to/cert.pem"
+        assert config.ssl_keyfile == "/path/to/key.pem"
+        assert config.ssl_ca_certs == "/path/to/ca.pem"
+        
+    def test_ssl_defaults(self):
+        """Test SSL default configuration."""
+        config = ServerConfig()
+        assert config.ssl_enabled is False
+        assert config.ssl_certfile is None
+        assert config.ssl_keyfile is None
+        assert config.ssl_ca_certs is None
+        
+    def test_external_url_configuration(self):
+        """Test external URL configuration settings."""
+        config = ServerConfig(
+            external_host="wmjump1.henkelman.net",
+            external_port=8080,
+            external_scheme="https"
+        )
+        assert config.external_host == "wmjump1.henkelman.net"
+        assert config.external_port == 8080
+        assert config.external_scheme == "https"
+        
+    def test_external_url_defaults(self):
+        """Test external URL default configuration."""
+        config = ServerConfig()
+        assert config.external_host is None
+        assert config.external_port is None
+        assert config.external_scheme == "http"
+        
+    def test_get_external_base_url(self):
+        """Test external base URL generation."""
+        # Test with external configuration
+        config = ServerConfig(
+            host="0.0.0.0",
+            port=8080,
+            external_host="wmjump1.henkelman.net",
+            external_port=8080,
+            external_scheme="https"
+        )
+        assert config.get_external_base_url() == "https://wmjump1.henkelman.net:8080"
+        
+        # Test without external configuration (fallback to server config)
+        config = ServerConfig(host="localhost", port=9000)
+        assert config.get_external_base_url() == "http://localhost:9000"
+        
+        # Test with external host but default port
+        config = ServerConfig(
+            external_host="example.com",
+            external_scheme="https"
+        )
+        # Should use server port as fallback
+        assert config.get_external_base_url() == "https://example.com:8080"
 
 
 class TestScraperConfig:
@@ -124,7 +187,13 @@ class TestLoadConfig:
             "server": {
                 "host": "127.0.0.1",
                 "port": 9000,
-                "log_level": "DEBUG"
+                "log_level": "DEBUG",
+                "ssl_enabled": True,
+                "ssl_certfile": "/etc/ssl/cert.pem",
+                "ssl_keyfile": "/etc/ssl/key.pem",
+                "external_host": "example.com",
+                "external_port": 443,
+                "external_scheme": "https"
             },
             "scraper": {
                 "delay": 0.5,
@@ -146,6 +215,12 @@ class TestLoadConfig:
             assert config.server.host == "127.0.0.1"
             assert config.server.port == 9000
             assert config.server.log_level == "DEBUG"
+            assert config.server.ssl_enabled is True
+            assert config.server.ssl_certfile == "/etc/ssl/cert.pem"
+            assert config.server.ssl_keyfile == "/etc/ssl/key.pem"
+            assert config.server.external_host == "example.com"
+            assert config.server.external_port == 443
+            assert config.server.external_scheme == "https"
             assert config.scraper.delay == 0.5
             assert config.scraper.timeout == 60
             assert config.scraper.max_retries == 5

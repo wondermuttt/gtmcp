@@ -12,6 +12,29 @@ class ServerConfig(BaseModel):
     host: str = Field(default="0.0.0.0", description="Host to bind to")
     port: int = Field(default=8080, description="Port to bind to") 
     log_level: str = Field(default="INFO", description="Log level")
+    
+    # SSL/HTTPS Configuration
+    ssl_enabled: bool = Field(default=False, description="Enable SSL/HTTPS")
+    ssl_certfile: Optional[str] = Field(default=None, description="Path to SSL certificate file")
+    ssl_keyfile: Optional[str] = Field(default=None, description="Path to SSL private key file")
+    ssl_ca_certs: Optional[str] = Field(default=None, description="Path to CA certificates file")
+    
+    # External URL Configuration (for ChatGPT manifests)
+    external_host: Optional[str] = Field(default=None, description="External hostname for API manifests")
+    external_port: Optional[int] = Field(default=None, description="External port for API manifests")
+    external_scheme: str = Field(default="http", description="External URL scheme (http/https)")
+    
+    def get_external_base_url(self) -> str:
+        """Get the external base URL for API manifests."""
+        host = self.external_host or ("localhost" if self.host == "0.0.0.0" else self.host)
+        port = self.external_port or self.port
+        scheme = self.external_scheme
+        
+        # Don't include port for standard ports
+        if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
+            return f"{scheme}://{host}"
+        else:
+            return f"{scheme}://{host}:{port}"
 
 
 class ScraperConfig(BaseModel):

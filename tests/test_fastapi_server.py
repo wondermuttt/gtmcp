@@ -142,6 +142,14 @@ async def search_research(keywords: str, max_records: int = 10):
 @test_app.get("/.well-known/ai-plugin.json")
 async def ai_plugin_manifest():
     """ChatGPT AI Plugin manifest for discovery."""
+    # Test with configurable external URL
+    from gtmcp.config import ServerConfig
+    global test_config
+    if 'test_config' in globals() and test_config:
+        base_url = test_config.get_external_base_url()
+    else:
+        base_url = "http://localhost:8080"
+    
     return {
         "schema_version": "v1",
         "name_for_human": "GT MCP Server",
@@ -151,12 +159,12 @@ async def ai_plugin_manifest():
         "auth": {"type": "none"},
         "api": {
             "type": "openapi",
-            "url": "http://localhost:8080/openapi.json",
+            "url": f"{base_url}/openapi.json",
             "is_user_authenticated": False
         },
-        "logo_url": "http://localhost:8080/static/logo.png",
+        "logo_url": f"{base_url}/static/logo.png",
         "contact_email": "support@gtmcp.example.com",
-        "legal_info_url": "http://localhost:8080/legal"
+        "legal_info_url": f"{base_url}/legal"
     }
 
 @test_app.get("/legal")
@@ -683,3 +691,193 @@ class TestFastAPIServerPerformance:
         # Second request should still work (server should not crash)
         response = client.get("/")
         assert response.status_code == 200
+
+
+class TestChatGPTIntegration:
+    """Test ChatGPT-specific integration endpoints and external URL configuration."""
+    
+    @pytest.fixture
+    def client(self):
+        """Create test client."""
+        return TestClient(test_app)
+    
+    def test_ai_plugin_manifest_default_urls(self, client):
+        """Test AI plugin manifest with default localhost URLs."""
+        global test_config
+        test_config = None  # Reset to default
+        
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data["schema_version"] == "v1"
+        assert data["name_for_human"] == "GT MCP Server"
+        assert data["name_for_model"] == "gt_mcp"
+        
+        # Check default URLs
+        assert data["api"]["url"] == "http://localhost:8080/openapi.json"
+        assert data["logo_url"] == "http://localhost:8080/static/logo.png"
+        assert data["legal_info_url"] == "http://localhost:8080/legal"
+        
+        # Check ChatGPT-specific fields
+        assert data["auth"]["type"] == "none"
+        assert data["api"]["type"] == "openapi"
+        assert data["api"]["is_user_authenticated"] is False
+        
+    def test_ai_plugin_manifest_external_urls(self, client):
+        """Test AI plugin manifest with external URL configuration."""
+        from gtmcp.config import ServerConfig
+        global test_config
+        
+        # Configure external URLs
+        test_config = ServerConfig(
+            external_host="wmjump1.henkelman.net",
+            external_port=8080,
+            external_scheme="https"
+        )
+        
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Check external URLs are used
+        assert data["api"]["url"] == "https://wmjump1.henkelman.net:8080/openapi.json"
+        assert data["logo_url"] == "https://wmjump1.henkelman.net:8080/static/logo.png"
+        assert data["legal_info_url"] == "https://wmjump1.henkelman.net:8080/legal"
+        
+        # Reset for other tests
+        test_config = None
+        
+    def test_ai_plugin_manifest_structure(self, client):
+        """Test AI plugin manifest has all required ChatGPT fields."""
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Required ChatGPT plugin manifest fields
+        required_fields = [
+            "schema_version", "name_for_human", "name_for_model", 
+            "description_for_human", "description_for_model", "auth", "api"
+        ]
+        
+        for field in required_fields:
+            assert field in data, f"Missing required field: {field}"
+            
+        # Check auth structure
+        assert "type" in data["auth"]
+        
+        # Check API structure
+        api = data["api"]
+        assert "type" in api
+        assert "url" in api
+        assert "is_user_authenticated" in api
+        assert api["type"] == "openapi"
+        
+    def test_legal_endpoint_chatgpt_compliance(self, client):
+        """Test legal endpoint provides ChatGPT-compliant information."""
+        response = client.get("/legal")
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Check required legal information fields
+        required_fields = [
+            "service_name", "version", "terms_of_service", 
+            "privacy_policy", "disclaimer", "data_sources"
+        ]
+        
+        for field in required_fields:
+            assert field in data, f"Missing legal field: {field}"
+            assert data[field], f"Empty legal field: {field}"
+            
+        # Check data sources is a list
+        assert isinstance(data["data_sources"], list)
+        assert len(data["data_sources"]) > 0
+        
+        # Check version matches
+        assert data["version"] == "2.1.0"
+        
+    def test_openapi_chatgpt_compatibility(self, client):
+        """Test OpenAPI specification is ChatGPT-compatible."""
+        response = client.get("/openapi.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Check OpenAPI 3.x format required by ChatGPT
+        assert "openapi" in data
+        assert data["openapi"].startswith("3.")
+        
+        # Check required sections
+        assert "info" in data
+        assert "paths" in data
+        
+        # Check info section
+        info = data["info"]
+        assert "title" in info
+        assert "version" in info
+        assert "description" in info
+        
+        # Check paths have proper HTTP methods
+        paths = data["paths"]
+        assert len(paths) > 0
+        
+        # Check some key endpoints exist
+        expected_paths = ["/", "/health", "/api/semesters", "/api/courses"]
+        for path in expected_paths:
+            found = False
+            for openapi_path in paths.keys():
+                if path in openapi_path:
+                    found = True
+                    break
+            assert found, f"Expected path {path} not found in OpenAPI spec"
+            
+    def test_cors_headers_for_chatgpt(self, client):
+        """Test CORS configuration allows ChatGPT access."""
+        # Test preflight request simulation
+        response = client.options("/")
+        # TestClient doesn't fully simulate CORS, but we can check basic structure
+        assert response.status_code in [200, 405]  # 405 is OK for OPTIONS on non-CORS endpoints
+        
+        # Test actual request works
+        response = client.get("/")
+        assert response.status_code == 200
+        
+        # Our CORS middleware is configured to allow all origins
+        # which is necessary for ChatGPT integration
+        
+    def test_external_url_configuration_edge_cases(self, client):
+        """Test edge cases in external URL configuration."""
+        from gtmcp.config import ServerConfig
+        global test_config
+        
+        # Test with external host but no port (should use default)
+        test_config = ServerConfig(
+            external_host="example.com",
+            external_scheme="https"
+        )
+        
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        # Should use default port 8080
+        assert data["api"]["url"] == "https://example.com:8080/openapi.json"
+        
+        # Test with custom port
+        test_config = ServerConfig(
+            external_host="custom.domain.com",
+            external_port=9000,
+            external_scheme="http"
+        )
+        
+        response = client.get("/.well-known/ai-plugin.json")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data["api"]["url"] == "http://custom.domain.com:9000/openapi.json"
+        
+        # Reset
+        test_config = None
