@@ -210,7 +210,7 @@ async def list_tools() -> ListToolsResult:
                         "accessible": {
                             "type": "boolean",
                             "description": "Filter for wheelchair accessible locations",
-                            "default": false
+                            "default": False
                         }
                     },
                     "required": []
