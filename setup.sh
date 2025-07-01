@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Georgia Tech MCP Server Setup Script
-# This script sets up the conda environment and installs dependencies
+# Georgia Tech Expanded MCP Server Setup Script
+# This script sets up the conda environment and installs dependencies for the multi-system integration
 
 set -e  # Exit on any error
 
-echo "🚀 Setting up Georgia Tech MCP Server..."
+echo "🚀 Setting up Georgia Tech Expanded MCP Server (Multi-System Integration)..."
 
 # Check if conda is installed
 if ! command -v conda &> /dev/null; then
@@ -61,13 +61,23 @@ echo "🎯 Next steps:"
 echo "  1. Activate the environment:"
 echo "     conda activate gtmcp"
 echo ""
-echo "  2. Test the setup:"
-echo "     python test_server.py"
+echo "  2. Test the expanded functionality:"
+echo "     python test_expanded_server.py"
 echo ""
-echo "  3. Run the MCP server:"
+echo "  3. Run the original MCP server (course scheduling only):"
 echo "     python -m gtmcp.server"
 echo ""
-echo "  4. Or run with custom config:"
-echo "     python -m gtmcp.server --config config.json"
+echo "  4. Run the EXPANDED MCP server (all GT systems):"
+echo "     python -m gtmcp.server_expanded"
 echo ""
-echo "📚 See README.md for more details"
+echo "  5. Or run with custom config:"
+echo "     python -m gtmcp.server_expanded --config config.json"
+echo ""
+echo "🌟 NEW FEATURES:"
+echo "  • Research paper search (SMARTech repository)"
+echo "  • Faculty research matching"
+echo "  • Campus location services"
+echo "  • Cross-system integration"
+echo "  • 17 comprehensive MCP tools"
+echo ""
+echo "📚 See CLAUDE.md for detailed workflow examples"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Georgia Tech MCP Server Startup Script
-# This script activates the conda environment and starts the server
+# Georgia Tech Expanded MCP Server Startup Script
+# This script activates the conda environment and starts the expanded multi-system server
 
 set -e
 
@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "🚀 Starting Georgia Tech MCP Server (Original - Course Scheduling Only)..."
+echo "🚀 Starting Georgia Tech Expanded MCP Server (Multi-System Integration)..."
 
 # Check if conda is available
 if ! command -v conda &> /dev/null; then
@@ -40,14 +40,18 @@ if [ -f "config.json" ]; then
     CONFIG_ARG="--config config.json"
 fi
 
-# Start the server
-echo "🌐 Starting Original MCP server..."
+# Start the expanded server
+echo "🌐 Starting Expanded MCP server..."
 echo "📡 Server will run on the configured host:port (default: 0.0.0.0:8080)"
 echo ""
-echo "ℹ️  This runs the original course scheduling server only."
-echo "💡 For expanded features, use: ./start_server_expanded.sh"
+echo "🌟 EXPANDED FEATURES ACTIVE:"
+echo "  • OSCAR Course Scheduling"
+echo "  • SMARTech Research Repository"
+echo "  • GT Places Campus Information"
+echo "  • Cross-System Integration"
+echo "  • 17 Comprehensive MCP Tools"
 echo ""
 echo "🔄 Press Ctrl+C to stop"
 echo ""
 
-python -m gtmcp.server $CONFIG_ARG "$@"
+python -m gtmcp.server_expanded $CONFIG_ARG "$@"

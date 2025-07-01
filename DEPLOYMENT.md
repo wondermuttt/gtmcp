@@ -1,6 +1,6 @@
-# Georgia Tech MCP Server - Linux Deployment Guide
+# Georgia Tech Comprehensive MCP Server - Linux Deployment Guide
 
-This guide walks you through deploying the GT MCP Server on a Linux server.
+This guide walks you through deploying the expanded GT MCP Server with multi-system integration on a Linux server.
 
 ## Prerequisites
 
@@ -125,9 +125,15 @@ Expected output:
 
 ## Step 7: Run the Server
 
-### Quick Start
+### Quick Start (Expanded Server - Recommended)
 ```bash
-# Using the startup script (recommended)
+# Using the expanded startup script (all GT systems)
+./start_server_expanded.sh
+```
+
+### Original Server (Course Scheduling Only)
+```bash
+# Using the original startup script
 ./start_server.sh
 ```
 
@@ -136,22 +142,33 @@ Expected output:
 # Activate environment
 conda activate gtmcp
 
-# Run server with default config
+# Run EXPANDED server with all GT systems (recommended)
+python -m gtmcp.server_expanded
+
+# Run original server (course scheduling only)
 python -m gtmcp.server
 
 # Or with custom config
-python -m gtmcp.server --config config.local.json
+python -m gtmcp.server_expanded --config config.local.json
 
 # Or with command line overrides
-python -m gtmcp.server --host 127.0.0.1 --port 9000 --log-level DEBUG
+python -m gtmcp.server_expanded --host 127.0.0.1 --port 9000 --log-level DEBUG
 ```
 
 ## Step 8: Verify Server is Running
 
-The server will start and display:
+The expanded server will start and display:
 ```
-Starting Georgia Tech MCP Server on 0.0.0.0:8080
-Scraper configured with 1.0s delay
+Starting Georgia Tech Expanded MCP Server
+Course system delay: 1.0s
+All clients initialized successfully
+
+EXPANDED FEATURES ACTIVE:
+  • OSCAR Course Scheduling
+  • SMARTech Research Repository  
+  • GT Places Campus Information
+  • Cross-System Integration
+  • 17 Comprehensive MCP Tools
 ```
 
 ## Production Deployment Options
@@ -166,14 +183,14 @@ sudo nano /etc/systemd/system/gtmcp.service
 
 ```ini
 [Unit]
-Description=Georgia Tech MCP Server
+Description=Georgia Tech Expanded MCP Server
 After=network.target
 
 [Service]
 Type=simple
 User=your-username
 WorkingDirectory=/path/to/gtmcp
-ExecStart=/home/your-username/anaconda3/envs/gtmcp/bin/python -m gtmcp.server
+ExecStart=/home/your-username/anaconda3/envs/gtmcp/bin/python -m gtmcp.server_expanded
 Restart=always
 RestartSec=10
 
