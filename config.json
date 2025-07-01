@@ -9,7 +9,7 @@
     "ssl_ca_certs": null,
     "external_host": "wmjump1.henkelman.net",
     "external_port": 8080,
-    "external_scheme": "https"
+    "external_scheme": "http"
   },
   "scraper": {
     "delay": 1.0,
