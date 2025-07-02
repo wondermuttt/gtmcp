@@ -32,8 +32,8 @@ conda activate gtmcp
 # Parse command line arguments
 HOST=${1:-0.0.0.0}
 PORT=${2:-8080}
-SSL_CERT=${3:-ssl/server.crt}
-SSL_KEY=${4:-ssl/server.key}
+SSL_CERT=${3:-/home/phenkelm/src/gtmcp/certs/fullchain.pem}
+SSL_KEY=${4:-/home/phenkelm/src/gtmcp/certs/privkey.pem}
 
 # Check if SSL certificates exist
 if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
@@ -41,12 +41,14 @@ if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
     echo "   Certificate: $SSL_CERT"
     echo "   Private Key: $SSL_KEY"
     echo ""
-    echo "💡 To generate test certificates, run:"
-    echo "   ./generate_test_ssl.sh"
+    echo "💡 To set up SSL certificates, run:"
+    echo "   sudo ./setup_ssl.sh"
     echo ""
-    echo "💡 For production with Let's Encrypt:"
-    echo "   sudo certbot certonly --standalone -d wmjump1.henkelman.net"
-    echo "   Update config.json with certificate paths"
+    echo "This will automatically:"
+    echo "  • Install Let's Encrypt certbot"
+    echo "  • Obtain SSL certificates for wmjump1.henkelman.net"
+    echo "  • Configure automatic renewal"
+    echo "  • Set up nginx reverse proxy (optional)"
     exit 1
 fi
 
