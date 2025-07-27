@@ -192,16 +192,16 @@ PROGRAM_FILTERS = {
     # Campus-based filters (use campus code)
     'atlanta': {'campus': 'A'},
     'online': {'campus': 'O'},
-    'lorraine': {'campus': 'R'},
-    'shenzhen': {'campus': 'Q'},
+    'lorraine': {'campus': 'L'},  # Campus L for Lorraine
+    'shenzhen': {'campus': 'S', 'sections': ['OSZ']},  # Fixed: S campus + OSZ online section
     
     # Section-based filters
-    'oms': {'sections': ['O01', 'O02', 'O03', 'OAN', 'OAM', 'OAZ', 'OCY', 'OC1']},
-    'omscs': {'sections': ['O01', 'O02', 'O03']},
-    'omsa': {'sections': ['OAN', 'OAM', 'OAZ']},
-    'omscyber': {'sections': ['OCY', 'OC1']},
-    'professional': {'sections': ['P', 'PE', 'PRO', 'PR1'], 'pattern': 'P##'},  # P followed by 0-2 digits
-    'gtpe': {'sections': ['P', 'PE', 'PRO', 'PR1'], 'pattern': 'P##'},  # Alias
+    'oms': {'sections': ['O01', 'O02', 'O03', 'OAN', 'OAM', 'OAZ', 'OCY', 'OC1'], 'min_level': 6000},
+    'omscs': {'sections': ['O01', 'O02', 'O03'], 'min_level': 6000},
+    'omsa': {'sections': ['OAN', 'OAM', 'OAZ'], 'min_level': 6000},
+    'omscyber': {'sections': ['OCY', 'OC1'], 'min_level': 6000},
+    'professional': {'sections': ['Q'], 'pattern': 'Q*'},  # Fixed: Q-prefix not P-prefix
+    'gtpe': {'sections': ['Q'], 'pattern': 'Q*'},  # Alias
     'vip': {'sections': ['VP1', 'VP2', 'VP3', 'VP4', 'VP5', 'VP6', 'VP7', 'VP8', 'VP9'], 'pattern': 'VP#'}
 }
 
@@ -259,14 +259,12 @@ def matches_section_pattern(section: str, pattern: str) -> bool:
     """
     Check if a section matches a pattern.
     Patterns:
-    - P## : P followed by 0-2 digits (P, P1, P01, P99)
+    - Q* : Q followed by anything (Q, QSA, QCH, Q01, etc.)
     - VP# : VP followed by 1 digit (VP1-VP9)
     """
-    if pattern == 'P##':
-        # P alone or P followed by 1-2 digits
-        return (section == 'P' or 
-                (section.startswith('P') and len(section) <= 3 and 
-                 section[1:].isdigit() and len(section[1:]) <= 2))
+    if pattern == 'Q*':
+        # Q alone or Q followed by anything
+        return section.startswith('Q')
     elif pattern == 'VP#':
         # VP followed by exactly 1 digit
         return (len(section) == 3 and section[:2] == 'VP' and 
@@ -438,7 +436,32 @@ def search_courses_for_subject(oscar_client, term_code: str, subject: str, query
             # Apply campus filter if present
             if program_filter and 'campus' in program_filter:
                 course_campus = getattr(course, 'campus', '')
-                should_include = course_campus == program_filter['campus']
+                
+                # If campus data is available, use it
+                if course_campus:
+                    # For campus filters, check campus code OR section patterns
+                    if 'sections' in program_filter:
+                        # Special case like Shenzhen with both campus and sections
+                        should_include = (course_campus == program_filter['campus'] or 
+                                        course_section in program_filter.get('sections', []))
+                    else:
+                        # Standard campus filter
+                        should_include = course_campus == program_filter['campus']
+                else:
+                    # Fallback to section-based filtering when campus data is not available
+                    if program_filter['campus'] == 'L':  # Lorraine
+                        should_include = course_section.startswith('L')
+                    elif program_filter['campus'] == 'A':  # Atlanta
+                        # Include non-online sections that aren't Lorraine or Shenzhen specific
+                        should_include = (not course_section.startswith('O') and 
+                                        not course_section.startswith('L') and
+                                        course_section not in ['OSZ'])
+                    elif program_filter['campus'] == 'O':  # Online
+                        # Include ONLY online sections (O-prefix)
+                        should_include = course_section.startswith('O')
+                    elif program_filter['campus'] == 'S':  # Shenzhen
+                        # Check for OSZ or other Shenzhen patterns
+                        should_include = course_section in program_filter.get('sections', [])
             
             # Apply section filter if present
             elif program_filter and 'sections' in program_filter:
@@ -451,6 +474,15 @@ def search_courses_for_subject(oscar_client, term_code: str, subject: str, query
                         should_include = matches_section_pattern(course_section, program_filter['pattern'])
                 else:
                     should_include = False
+                
+                # Apply minimum level filter for OMS programs
+                if should_include and 'min_level' in program_filter:
+                    try:
+                        course_num = int(course.course_number)
+                        if course_num < program_filter['min_level']:
+                            should_include = False
+                    except (ValueError, AttributeError):
+                        pass
             
             # Check for section-specific search (e.g., "O01", "O02", "OCY")
             requested_section = hyphen_section  # Use hyphenated section if found
@@ -1013,18 +1045,50 @@ def fetch(id: str = Field(description="Course ID from search (e.g., 'course_2025
                 # Apply program/location filter if requested
                 # BUT skip filtering if a specific section was requested
                 if program_filter and not requested_section:
-                    if 'campus' in program_filter:
-                        # Campus-based filter
-                        filtered = [c for c in matching_courses 
-                                  if getattr(c, 'campus', '') == program_filter['campus']]
-                    elif 'sections' in program_filter:
-                        # Section-based filter
-                        filtered = []
-                        for c in matching_courses:
+                    filtered = []
+                    
+                    for c in matching_courses:
+                        should_include = False
+                        
+                        if 'campus' in program_filter:
+                            # Campus-based filter
+                            course_campus = getattr(c, 'campus', '')
+                            
+                            # Special case for Shenzhen with both campus and sections
+                            if 'sections' in program_filter:
+                                should_include = (course_campus == program_filter['campus'] or 
+                                                c.section in program_filter.get('sections', []))
+                            else:
+                                # Standard campus filter
+                                should_include = course_campus == program_filter['campus']
+                                
+                                # Additional logic for campus filters
+                                if program_filter['campus'] == 'A':  # Atlanta
+                                    # Exclude ALL online sections
+                                    if c.section.startswith('O'):
+                                        should_include = False
+                                elif program_filter['campus'] == 'O':  # Online
+                                    # Include ONLY online sections
+                                    should_include = c.section.startswith('O')
+                        
+                        elif 'sections' in program_filter:
+                            # Section-based filter
                             if c.section in program_filter['sections']:
-                                filtered.append(c)
+                                should_include = True
                             elif 'pattern' in program_filter and matches_section_pattern(c.section, program_filter['pattern']):
-                                filtered.append(c)
+                                should_include = True
+                            
+                            # Apply minimum level filter
+                            if should_include and 'min_level' in program_filter:
+                                try:
+                                    course_num = int(c.course_number)
+                                    if course_num < program_filter['min_level']:
+                                        should_include = False
+                                except (ValueError, AttributeError):
+                                    pass
+                        
+                        if should_include:
+                            filtered.append(c)
                     
                     if filtered:
                         matching_courses = filtered

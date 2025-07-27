@@ -211,11 +211,46 @@ class OscarClient(BaseClient):
                                 description = ""
                                 credit_hours = 3  # Default
                                 
+                                # Extract campus from section code patterns
+                                campus = None
+                                if section:
+                                    # Common campus patterns based on section codes
+                                    if section.startswith('L'):  # L00, L01 etc are Lorraine
+                                        campus = 'L'
+                                    elif section.startswith('O'):  # O01, O02, OAN etc are Online
+                                        campus = 'O'
+                                    elif section in ['OSZ']:  # Special online Shenzhen
+                                        campus = 'S'  # But it's online, so maybe O?
+                                    elif section.startswith('Q'):  # QSA, QCH etc are Professional (Atlanta-based)
+                                        campus = 'A'
+                                    elif section[0].isalpha() and len(section) <= 3:  # A, B, C, etc are Atlanta
+                                        # Exclude already handled patterns
+                                        if section[0] not in ['L', 'O', 'Q', 'V']:
+                                            campus = 'A'
+                                
                                 if next_tr:
                                     # Look for course details in the dddefault td
                                     details_td = next_tr.find('td', class_='dddefault')
                                     if details_td:
                                         details_text = details_td.get_text()
+                                        
+                                        # Try to extract campus from details text if available
+                                        if 'Campus:' in details_text:
+                                            campus_start = details_text.find('Campus:') + len('Campus:')
+                                            campus_end = details_text.find('\n', campus_start)
+                                            if campus_end != -1:
+                                                campus_text = details_text[campus_start:campus_end].strip()
+                                                # Map campus names to codes
+                                                campus_map = {
+                                                    'Atlanta': 'A',
+                                                    'Online': 'O',
+                                                    'Lorraine': 'L',
+                                                    'Shenzhen': 'S'
+                                                }
+                                                for name, code in campus_map.items():
+                                                    if name in campus_text:
+                                                        campus = code
+                                                        break
                                         
                                         # Extract description if present
                                         if 'Course Info:' in details_text:
@@ -234,7 +269,8 @@ class OscarClient(BaseClient):
                                     title=title,
                                     subject=course_subject,
                                     course_number=course_number,
-                                    section=section
+                                    section=section,
+                                    campus=campus
                                 )
                                 courses.append(course)
                                 

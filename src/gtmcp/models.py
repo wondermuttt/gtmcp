@@ -19,6 +19,7 @@ class CourseInfo(BaseModel):
     subject: str
     course_number: str
     section: str
+    campus: Optional[str] = None  # Campus code (A, O, L, S, etc.)
     
 
 class RegistrationInfo(BaseModel):
