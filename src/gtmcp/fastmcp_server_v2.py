@@ -453,9 +453,12 @@ def search_courses_for_subject(oscar_client, term_code: str, subject: str, query
                         should_include = course_section.startswith('L')
                     elif program_filter['campus'] == 'A':  # Atlanta
                         # Include non-online sections that aren't Lorraine or Shenzhen specific
+                        # Exclude: O* (online), L* (Lorraine), Q* (professional), MS* (MS Analytics), OSZ, MSA
                         should_include = (not course_section.startswith('O') and 
                                         not course_section.startswith('L') and
-                                        course_section not in ['OSZ'])
+                                        not course_section.startswith('Q') and
+                                        not course_section.startswith('MS') and
+                                        course_section not in ['OSZ', 'MSA'])
                     elif program_filter['campus'] == 'O':  # Online
                         # Include ONLY online sections (O-prefix)
                         should_include = course_section.startswith('O')
