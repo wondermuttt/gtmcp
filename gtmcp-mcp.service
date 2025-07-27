@@ -1,5 +1,5 @@
 [Unit]
-Description=Georgia Tech MCP FastAPI Server with SSL
+Description=Georgia Tech MCP Server
 After=network.target
 
 [Service]
@@ -8,8 +8,11 @@ User=wondermutt
 Group=wondermutt
 WorkingDirectory=/home/wondermutt/gtmcp
 Environment="PATH=/home/wondermutt/miniforge3/envs/gtmcp/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/wondermutt/miniforge3/envs/gtmcp/bin/python -m gtmcp.server_fastapi --host 0.0.0.0 --port 8080 --config config.json --ssl --ssl-cert /etc/letsencrypt/live/wmjump1.henkelman.net/fullchain.pem --ssl-key /etc/letsencrypt/live/wmjump1.henkelman.net/privkey.pem
-SupplementaryGroups=ssl-cert
+Environment="MCP_HOST=0.0.0.0"
+Environment="MCP_PORT=8080"
+Environment="SSL_CERT=/etc/letsencrypt/live/wmjump1.henkelman.net/fullchain.pem"
+Environment="SSL_KEY=/etc/letsencrypt/live/wmjump1.henkelman.net/privkey.pem"
+ExecStart=/home/wondermutt/miniforge3/envs/gtmcp/bin/python -m gtmcp.mcp_server
 Restart=always
 RestartSec=10
 

@@ -18,6 +18,7 @@ EMAIL="${LETSENCRYPT_EMAIL:-admin@henkelman.net}"  # Can be overridden with envi
 CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
 APP_CERT_DIR="/home/phenkelm/src/gtmcp/certs"
 WEBROOT_PATH="/var/www/certbot"
+CHALLENGE_PORT="8080"  # Use the port that's already open in firewall
 
 echo -e "${GREEN}Let's Encrypt SSL Setup for ${DOMAIN}${NC}"
 echo "========================================"
@@ -48,58 +49,28 @@ echo -e "${YELLOW}Creating webroot directory...${NC}"
 mkdir -p ${WEBROOT_PATH}
 chown -R www-data:www-data ${WEBROOT_PATH}
 
-# Check if nginx is installed and running
-if command_exists nginx && systemctl is-active --quiet nginx; then
-    echo -e "${YELLOW}Nginx is running. Creating temporary configuration for certbot...${NC}"
-    
-    # Create a temporary nginx config for certbot verification
-    cat > /etc/nginx/sites-available/certbot-temp << EOF
-server {
-    listen 80;
-    server_name ${DOMAIN};
-    
-    location /.well-known/acme-challenge/ {
-        root ${WEBROOT_PATH};
-    }
-    
-    location / {
-        return 404;
-    }
-}
-EOF
-    
-    # Enable the temporary site
-    ln -sf /etc/nginx/sites-available/certbot-temp /etc/nginx/sites-enabled/
-    nginx -s reload
-    
-    # Obtain certificate using webroot
-    echo -e "${YELLOW}Obtaining SSL certificate...${NC}"
-    certbot certonly \
-        --webroot \
-        --webroot-path=${WEBROOT_PATH} \
-        --email ${EMAIL} \
-        --agree-tos \
-        --no-eff-email \
-        --domains ${DOMAIN} \
-        --non-interactive
-    
-    # Remove temporary nginx config
-    rm -f /etc/nginx/sites-enabled/certbot-temp
-    rm -f /etc/nginx/sites-available/certbot-temp
-    nginx -s reload
-else
-    # Use standalone mode if nginx is not running
-    echo -e "${YELLOW}Using standalone mode for certificate generation...${NC}"
-    echo -e "${RED}Note: This requires port 80 to be free${NC}"
-    
-    certbot certonly \
-        --standalone \
-        --email ${EMAIL} \
-        --agree-tos \
-        --no-eff-email \
-        --domains ${DOMAIN} \
-        --non-interactive
+# Stop any service using port 8080 temporarily
+echo -e "${YELLOW}Checking if port ${CHALLENGE_PORT} is in use...${NC}"
+if lsof -Pi :${CHALLENGE_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo -e "${YELLOW}Port ${CHALLENGE_PORT} is in use. Please stop the GTMCP server temporarily.${NC}"
+    echo -e "${YELLOW}Run: systemctl stop gtmcp (or kill the process using port ${CHALLENGE_PORT})${NC}"
+    echo -e "${YELLOW}Then re-run this script.${NC}"
+    exit 1
 fi
+
+# Use standalone mode with custom port since certbot doesn't support webroot on non-standard ports
+echo -e "${YELLOW}Using standalone mode on port ${CHALLENGE_PORT} for certificate generation...${NC}"
+echo -e "${GREEN}Make sure you've configured your domain to point to ${CHALLENGE_PORT} for HTTP validation${NC}"
+echo -e "${YELLOW}You may need to add a port redirect at your domain registrar or use DNS challenge instead${NC}"
+
+certbot certonly \
+    --standalone \
+    --http-01-port ${CHALLENGE_PORT} \
+    --email ${EMAIL} \
+    --agree-tos \
+    --no-eff-email \
+    --domains ${DOMAIN} \
+    --non-interactive
 
 # Check if certificate was obtained successfully
 if [ ! -d "${CERT_DIR}" ]; then

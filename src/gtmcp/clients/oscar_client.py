@@ -146,16 +146,25 @@ class OscarClient(BaseClient):
                 ('sel_subj', 'dummy'),  # Required first entry
                 ('sel_subj', subject),  # Actual subject selection
                 ('sel_day', 'dummy'),
+                ('sel_schd', 'dummy'),  # Required dummy
                 ('sel_schd', '%'),      # All schedule types
                 ('sel_insm', 'dummy'),
+                ('sel_insm', '%'),      # All instruction methods
+                ('sel_camp', 'dummy'),  # Required dummy
                 ('sel_camp', '%'),      # All campuses  
+                ('sel_levl', 'dummy'),  # Required dummy
                 ('sel_levl', '%'),      # All levels
-                ('sel_sess', '%'),      # All sessions
+                ('sel_sess', 'dummy'),  # Required dummy
+                ('sel_instr', 'dummy'), # Required dummy
                 ('sel_instr', '%'),     # All instructors
+                ('sel_ptrm', 'dummy'),  # Required dummy
                 ('sel_ptrm', '%'),      # All part of term
+                ('sel_attr', 'dummy'),  # Required dummy
                 ('sel_attr', '%'),      # All attributes
                 ('sel_crse', ''),       # No specific course filter
                 ('sel_title', ''),      # No title filter
+                ('sel_from_cred', ''),  # Credit range
+                ('sel_to_cred', ''),    
                 ('begin_hh', '0'),      # Time filters
                 ('begin_mi', '0'),
                 ('begin_ap', 'a'),
@@ -171,22 +180,24 @@ class OscarClient(BaseClient):
             
             courses = []
             
-            # Look for course data tables
-            for table in soup.find_all('table', class_='datadisplaytable'):
-                caption = table.find('caption', class_='captiontext')
-                if not caption:
+            # Look for course data in th elements with class ddtitle
+            # Format: "Introduction to Computing - 82294 - CS 1301 - A"
+            for th in soup.find_all('th', class_='ddtitle'):
+                # Get the link inside the th element
+                link = th.find('a')
+                if not link:
                     continue
                 
-                caption_text = caption.get_text(strip=True)
+                course_text = link.get_text(strip=True)
                 
-                # Extract course info from caption
-                if ' - ' in caption_text:
+                # Extract course info from the text
+                if ' - ' in course_text:
                     try:
-                        parts = caption_text.split(' - ')
+                        parts = course_text.split(' - ')
                         if len(parts) >= 4:
                             title = parts[0].strip()
-                            course_code = parts[1].strip()
-                            crn = parts[2].strip()
+                            crn = parts[1].strip()
+                            course_code = parts[2].strip()
                             section = parts[3].strip()
                             
                             # Parse course code to get subject and number
@@ -194,6 +205,29 @@ class OscarClient(BaseClient):
                             if course_match:
                                 course_subject = course_match.group(1)
                                 course_number = course_match.group(2)
+                                
+                                # Find the next tr with course details
+                                next_tr = th.find_parent('tr').find_next_sibling('tr')
+                                description = ""
+                                credit_hours = 3  # Default
+                                
+                                if next_tr:
+                                    # Look for course details in the dddefault td
+                                    details_td = next_tr.find('td', class_='dddefault')
+                                    if details_td:
+                                        details_text = details_td.get_text()
+                                        
+                                        # Extract description if present
+                                        if 'Course Info:' in details_text:
+                                            desc_start = details_text.find('Course Info:') + len('Course Info:')
+                                            desc_end = details_text.find('Associated Term:', desc_start)
+                                            if desc_end == -1:
+                                                desc_end = details_text.find('\n', desc_start + 100)
+                                            if desc_end != -1:
+                                                description = details_text[desc_start:desc_end].strip()
+                                
+                                # Look for credit hours in nearby elements
+                                # This is typically in a separate cell
                                 
                                 course = CourseInfo(
                                     crn=crn,
@@ -205,7 +239,7 @@ class OscarClient(BaseClient):
                                 courses.append(course)
                                 
                     except Exception as e:
-                        logger.warning(f"Error parsing course caption '{caption_text}': {e}")
+                        logger.warning(f"Error parsing course '{course_text}': {e}")
                         continue
             
             logger.info(f"Found {len(courses)} courses for {subject} in {term_code}")
@@ -266,20 +300,20 @@ class OscarClient(BaseClient):
             if not main_table:
                 raise ParseError("Could not find course details table")
             
-            # Extract basic course information
-            caption = main_table.find('caption', class_='captiontext')
-            if not caption:
-                raise ParseError("Could not find course caption")
+            # Extract basic course information from th element
+            course_header = main_table.find('th', class_='ddlabel')
+            if not course_header:
+                raise ParseError("Could not find course header")
             
-            caption_text = caption.get_text(strip=True)
-            parts = caption_text.split(' - ')
+            header_text = course_header.get_text(strip=True)
+            parts = header_text.split(' - ')
             
             if len(parts) < 4:
-                raise ParseError(f"Invalid course caption format: {caption_text}")
+                raise ParseError(f"Invalid course header format: {header_text}")
             
             title = parts[0].strip()
-            course_code = parts[1].strip()
-            crn_from_caption = parts[2].strip()
+            crn_from_caption = parts[1].strip()
+            course_code = parts[2].strip()
             section = parts[3].strip()
             
             # Parse course code
@@ -380,19 +414,19 @@ class OscarClient(BaseClient):
                     if len(cells) >= 4:
                         row_text = ' '.join([cell.get_text(strip=True) for cell in cells])
                         
-                        if 'Seats' in row_text:
-                            try:
-                                registration_info.seats_capacity = int(cells[1].get_text(strip=True))
-                                registration_info.seats_actual = int(cells[2].get_text(strip=True))
-                                registration_info.seats_remaining = int(cells[3].get_text(strip=True))
-                            except (ValueError, IndexError):
-                                logger.warning("Could not parse seats information")
-                        
-                        elif 'Waitlist' in row_text:
+                        if 'Waitlist' in row_text:
                             try:
                                 registration_info.waitlist_capacity = int(cells[1].get_text(strip=True))
                                 registration_info.waitlist_actual = int(cells[2].get_text(strip=True))
                                 registration_info.waitlist_remaining = int(cells[3].get_text(strip=True))
+                            except (ValueError, IndexError):
+                                logger.warning("Could not parse waitlist information")
+                        
+                        elif 'Seats' in row_text or 'Class' in row_text:
+                            try:
+                                registration_info.seats_capacity = int(cells[1].get_text(strip=True))
+                                registration_info.seats_actual = int(cells[2].get_text(strip=True))
+                                registration_info.seats_remaining = int(cells[3].get_text(strip=True))
                             except (ValueError, IndexError):
                                 logger.warning("Could not parse waitlist information")
         

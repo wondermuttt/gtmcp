@@ -32,8 +32,8 @@ conda activate gtmcp
 # Parse command line arguments
 HOST=${1:-0.0.0.0}
 PORT=${2:-8080}
-SSL_CERT=${3:-/home/phenkelm/src/gtmcp/certs/fullchain.pem}
-SSL_KEY=${4:-/home/phenkelm/src/gtmcp/certs/privkey.pem}
+SSL_CERT=${3:-/etc/letsencrypt/live/wmjump1.henkelman.net/fullchain.pem}
+SSL_KEY=${4:-/etc/letsencrypt/live/wmjump1.henkelman.net/privkey.pem}
 
 # Check if SSL certificates exist
 if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then

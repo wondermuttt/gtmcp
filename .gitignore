@@ -195,3 +195,23 @@ logs/
 # Cache directories
 .cache/
 cache/
+
+# Archive folder
+archive/
+
+# Debug and temporary test files
+debug_*.py
+test_*.py
+check_*.py
+analyze_*.py
+benchmark_*.py
+verify_*.py
+
+# Temporary documentation files that should be reviewed before committing
+*_SUMMARY.md
+*_TODO.md
+*_REPORT.md
+*_IMPROVEMENTS.md
+*_IMPLEMENTATION.md
+*_FIX.md
+*_PREVENTION.md
